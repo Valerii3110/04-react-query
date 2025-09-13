@@ -1,24 +1,36 @@
 import axios from 'axios';
-import type { Movie } from '../types/movie';
+import type { MoviesResponse } from '../types/movie';
 
-const BASE_URL = 'https://api.themoviedb.org/3';
+// Отримуємо ключ з .env
+const API_KEY = import.meta.env.VITE_TMDB_KEY;
+if (!API_KEY) throw new Error('TMDB API key is missing!');
 
-// Опис структури відповіді TMDB
-interface FetchMoviesResponse {
-  results: Movie[];
-}
+// Створюємо інстанс axios з базовим URL та ключем
+const instance = axios.create({
+  baseURL: 'https://api.themoviedb.org/3/',
+  params: {
+    api_key: API_KEY, // тут має бути **v3 ключ**, а не JWT
+    language: 'en-US',
+  },
+});
 
-export const fetchMovies = async (query: string): Promise<Movie[]> => {
-  try {
-    const response = await axios.get<FetchMoviesResponse>(`${BASE_URL}/search/movie`, {
-      params: { query },
-      headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_TMDB_TOKEN}`,
-      },
-    });
-
-    return response.data.results;
-  } catch {
-    throw new Error('Failed to fetch movies');
+// Функція пошуку фільмів
+export const fetchMovies = async (query: string, page: number = 1): Promise<MoviesResponse> => {
+  if (!query.trim()) {
+    return {
+      page: 1,
+      results: [],
+      total_pages: 0,
+      total_results: 0,
+    };
   }
+
+  const { data } = await instance.get<MoviesResponse>('search/movie', {
+    params: {
+      query,
+      page,
+    },
+  });
+
+  return data;
 };
