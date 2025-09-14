@@ -1,20 +1,29 @@
 import axios from 'axios';
-import type { MoviesResponse } from '../types/movie';
+import type { Movie } from '../types/movie';
 
-// Отримуємо ключ з .env
-const API_KEY = import.meta.env.VITE_TMDB_KEY;
-if (!API_KEY) throw new Error('TMDB API key is missing!');
+// Базовий URL
+const API_URL = 'https://api.themoviedb.org/3';
 
-// Створюємо інстанс axios з базовим URL та ключем
-const instance = axios.create({
-  baseURL: 'https://api.themoviedb.org/3/',
-  params: {
-    api_key: API_KEY, // тут має бути **v3 ключ**, а не JWT
-    language: 'en-US',
-  },
-});
+// Токен з .env (v4 API Read Access Token)
+const token = import.meta.env.VITE_TMDB_TOKEN;
+if (!token) {
+  throw new Error('TMDB Bearer token is missing! Add VITE_TMDB_TOKEN to your .env');
+}
 
-// Функція пошуку фільмів
+// Налаштування axios
+axios.defaults.baseURL = API_URL;
+axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+axios.defaults.headers.common['accept'] = 'application/json';
+
+// ✅ Інтерфейс має бути тут
+export interface MoviesResponse {
+  page: number;
+  results: Movie[];
+  total_pages: number;
+  total_results: number;
+}
+
+// ✅ Функція для пошуку фільмів
 export const fetchMovies = async (query: string, page: number = 1): Promise<MoviesResponse> => {
   if (!query.trim()) {
     return {
@@ -25,11 +34,8 @@ export const fetchMovies = async (query: string, page: number = 1): Promise<Movi
     };
   }
 
-  const { data } = await instance.get<MoviesResponse>('search/movie', {
-    params: {
-      query,
-      page,
-    },
+  const { data } = await axios.get<MoviesResponse>('/search/movie', {
+    params: { query, page },
   });
 
   return data;
